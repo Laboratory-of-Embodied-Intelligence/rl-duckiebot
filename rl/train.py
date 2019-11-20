@@ -63,7 +63,6 @@ def _train(args):
     reward = 0
     episode_timesteps = 0
    
-    writer.add_graph(model)
         
     print("Starting training")
     while total_timesteps < args.max_timesteps:
@@ -75,7 +74,7 @@ def _train(args):
                 print(("Total T: %d Episode Num: %d Episode T: %d Reward: %f") % (
                     total_timesteps, episode_num, episode_timesteps, episode_reward))
                 policy.train(replay_buffer, episode_timesteps, args.batch_size, args.discount, args.tau)
-
+                writer.add_scalar('Loss/episode_reward', episode_reward, episode_num)
                 # Evaluate episode
                 if timesteps_since_eval >= args.eval_freq:
                     timesteps_since_eval %= args.eval_freq
@@ -108,7 +107,6 @@ def _train(args):
 
         # Perform action
         new_obs, reward, done, _ = env.step(action)
-        writer.add_scalar('Loss/reward', reward, total_timesteps)
         
         if episode_timesteps >= args.env_timesteps:
             done = True
