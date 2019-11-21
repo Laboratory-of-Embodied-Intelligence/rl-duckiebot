@@ -54,11 +54,12 @@ class DtRewardWrapper(gym.RewardWrapper):
 
     def reward(self, reward):
         if reward == -1000:
-            reward = -10
-        elif reward > 0:
-            reward += 10
-        else:
-            reward += 4
+            reward = -100
+         
+        #elif reward > 0:
+        #    reward += 10
+        #else:
+        #    reward += 4
 
         return reward
 
