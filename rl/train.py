@@ -35,7 +35,6 @@ def _train(args):
     env = ResizeWrapper(env)
     env = NormalizeWrapper(env)
     env = ImgWrapper(env) # to make the images from 160x120x3 into 3x160x120
-    env = ActionWrapper(env)
     env = DtRewardWrapper(env)
     print("Initialized Wrappers")
     
