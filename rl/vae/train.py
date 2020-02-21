@@ -41,7 +41,7 @@ vae = ConvVAE(z_size=args.z_size,
               is_training=True,
               reuse=False)
 
-images = [im for im in os.listdir(args.folder) if im.endswith('.jpg')]
+images = [im for im in os.listdir(args.folder) if (im.endswith('.jpg') or im.endswith('.png'))]
 images = np.array(images)
 n_samples = len(images)
 
