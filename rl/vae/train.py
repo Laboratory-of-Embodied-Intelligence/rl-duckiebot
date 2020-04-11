@@ -82,19 +82,30 @@ for epoch in range(args.n_epochs):
 
     # Update params
     vae_controller.set_target_params()
+    
+    # Save latest every 50 epochs 
+    if epoch % 50 == 0:
+        save_path = "logs/vae-{}-{}".format(args.z_size, epoch)
+        os.makedirs(save_path, exist_ok=True)
+        print("Saving to {}".format(save_path))
+        vae_controller.set_target_params()
+        vae_controller.save(save_path)
     # Load test image
     if args.verbose >= 1:
         image_idx = np.random.randint(n_samples)
         image_path = args.folder + images[image_idx]
         image = cv2.imread(image_path)
         r = ROI
-        im = image[int(r[1]):int(r[1] + r[3]), int(r[0]):int(r[0] + r[2])]
+        #im = image[int(r[1]):int(r[1] + r[3]), int(r[0]):int(r[0] + r[2])]
+        im = cv2.resize(image,(160, 80))
 
         encoded = vae_controller.encode(im)
         reconstructed_image = vae_controller.decode(encoded)[0]
         # Plot reconstruction
         cv2.imshow("Original", image)
         cv2.imshow("Reconstruction", reconstructed_image)
+        cv2.imwrite(save_path+"/"+str(epoch)+"_orig.png", image)
+        cv2.imwrite(save_path+"/"+str(epoch)+"_recon.png", reconstructed_image)
         cv2.waitKey(1)
 
 save_path = "logs/vae-{}".format(args.z_size)

@@ -58,7 +58,9 @@ class VAEController:
         """
         r = ROI
         # Crop image
-        im = raw_image[int(r[1]):int(r[1] + r[3]), int(r[0]):int(r[0] + r[2])]
+        #im = raw_image[int(r[1]):int(r[1] + r[3]), int(r[0]):int(r[0] + r[2])]
+        im = raw_image
+        
         return self.encode(im)
 
     def encode(self, observation):

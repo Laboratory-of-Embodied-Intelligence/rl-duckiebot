@@ -45,7 +45,7 @@ def _train(args):
     state_dim = env.observation_space.shape
     action_dim = env.action_space.shape[0]
     max_action = float(env.action_space.high[0])
-
+    print(f"State: {state_dim}, actiond_dim: {action_dim}, max_action: {max_action}")
     # Initialize policy
     policy = DDPG(state_dim, action_dim, max_action, net_type="cnn")
     if args.resume:

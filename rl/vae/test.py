@@ -25,19 +25,23 @@ if not args.folder.endswith('/'):
 vae = VAEController()
 vae.load(args.vae_path)
 
-images = [im for im in os.listdir(args.folder) if im.endswith('.jpg')]
+images = [im for im in os.listdir(args.folder) if im.endswith('.jpg') or im.endswith('.png')]
 images = np.array(images)
 n_samples = len(images)
 
 
 for i in range(args.n_samples):
     # Load test image
+
     image_idx = np.random.randint(n_samples)
     image_path = args.folder + images[image_idx]
     image = cv2.imread(image_path)
-
-    encoded = vae.encode_from_raw_image(image)
+    image = image[0:][156:]
+    im = cv2.resize(image,(160, 80))
+    encoded = vae.encode_from_raw_image(im)
+    print( vae.decode(encoded))
     reconstructed_image = vae.decode(encoded)[0]
+    print(reconstructed_image.shape)
     # Plot reconstruction
     cv2.imshow("Original", image)
     cv2.imshow("Reconstruction", reconstructed_image)

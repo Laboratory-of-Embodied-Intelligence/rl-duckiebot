@@ -4,7 +4,7 @@ import numpy as np
 
 
 class ResizeWrapper(gym.ObservationWrapper):
-    def __init__(self, env=None, shape=(120, 160, 3)):
+    def __init__(self, env=None, shape=(160,80, 3)):
         super(ResizeWrapper, self).__init__(env)
         self.observation_space.shape = shape
         self.observation_space = spaces.Box(
@@ -16,7 +16,9 @@ class ResizeWrapper(gym.ObservationWrapper):
 
     def observation(self, observation):
         from PIL import Image
-        return np.array(Image.fromarray(observation).resize(self.shape[0:2]))
+        #Image.fromarray(observation).show()\
+        new_obs = np.array(Image.fromarray(observation).resize(self.shape[0:2]))
+        return new_obs
 
 
 class NormalizeWrapper(gym.ObservationWrapper):
@@ -45,7 +47,7 @@ class ImgWrapper(gym.ObservationWrapper):
             dtype=self.observation_space.dtype)
 
     def observation(self, observation):
-        return observation.transpose(2, 0, 1)
+        return observation#.transpose(2, 0, 1)
 
 
 class DtRewardWrapper(gym.RewardWrapper):
@@ -56,7 +58,7 @@ class DtRewardWrapper(gym.RewardWrapper):
         if reward == -1000:
             reward = -100
          
-        #elif reward > 0:
+        #elif reward > 0: 
         #    reward += 10
         #else:
         #    reward += 4
@@ -72,3 +74,18 @@ class ActionWrapper(gym.ActionWrapper):
     def action(self, action):
         action_ = [action[0] * 0.8, action[1]]
         return action_
+
+
+class VaeWrapper(gym.ObservationWrapper):
+
+    def __init__(self, env, vae):
+        super(VaeWrapper, self).__init__(env)
+        self.vae = vae
+
+        self.observation_space = spaces.Box(low=np.finfo(np.float32).min,
+                                high=np.finfo(np.float32).max,
+                                shape=(1, self.vae.z_size),
+                                dtype=np.float32)
+    def observation(self, observation):
+        enc_obs = self.vae.encode(observation)
+        return enc_obs
