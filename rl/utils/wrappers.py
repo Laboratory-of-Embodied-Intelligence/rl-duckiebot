@@ -87,5 +87,8 @@ class VaeWrapper(gym.ObservationWrapper):
                                 shape=(1, self.vae.z_size),
                                 dtype=np.float32)
     def observation(self, observation):
-        enc_obs = self.vae.encode(observation)
+        self.last_pre_encoded_obs = observation
+        enc_obs = self.vae.encode_from_raw_image(observation)
+        self.last_encoded_obs = self.vae.decode(enc_obs)[0]
+        
         return enc_obs

@@ -1,6 +1,7 @@
 
 import numpy as np
 import argparse
+import os
 from utils.env import launch_env
 from utils.wrappers import NormalizeWrapper, ImgWrapper, \
     DtRewardWrapper, ActionWrapper, ResizeWrapper, VaeWrapper
@@ -27,10 +28,10 @@ if __name__=="__main__":
 
     tensorboard_log = 'runs'
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v', '--vae', help="Path for trained vae model", default='logs/vae-64.pkl', type=str)
+    parser.add_argument('-v', '--vae', help="Path for trained vae model", default='logs/vae-128-100.pkl', type=str)
     # DDPG Args
     parser.add_argument("--seed", default=0, type=int)  # Sets Gym, PyTorch and Numpy seeds
-    parser.add_argument("--max_timesteps", default=1e6, type=float)  # Max time steps to run environment for
+    parser.add_argument("--max_timesteps", default=1000000, type=float)  # Max time steps to run environment for
     parser.add_argument("--expl_noise", default=0.1, type=float)  # Std of Gaussian exploration noise
     parser.add_argument("--batch_size", default=64, type=int)  # Batch size for both actor and critic
     parser.add_argument("--discount", default=0.99, type=float)  # Discount factor
@@ -49,7 +50,7 @@ if __name__=="__main__":
     vae = load_vae(args.vae)
     env = VaeWrapper(env, vae)
 
-    model = DDPG_V2(policy = 'CustomDDPGPolicy',env = env, tensorboard_log = tensorboard_log, verbose=1,
+    model = DDPG_V2(policy = 'CustomDDPGPolicy',env = env, tensorboard_log = tensorboard_log, verbose=0,
                     gamma = args.discount,
                     buffer_size = args.replay_buffer_max_size,
                     tau = args.tau,
@@ -58,4 +59,4 @@ if __name__=="__main__":
                     render_eval = True)
     
     model.learn(args.max_timesteps)
-    model.save(os.path.join("results/ddpg_vae"), cloudpickle=True)
+    #model.save(os.path.join("results/ddpg_vae"), cloudpickle=True)
