@@ -1,6 +1,5 @@
 ![Docker Image CI](https://github.com/Laboratory-of-Embodied-Intelligence/rl-duckiebot/workflows/Docker%20Image%20CI/badge.svg)
-
-[![DeepSource](https://static.deepsource.io/deepsource-badge-dark-mini.svg)](https://deepsource.io/gh/Laboratory-of-Embodied-Intelligence/rl-duckiebot/?ref=repository-badge)
+[![DeepSource](https://static.deepsource.io/deepsource-badge-light-mini.svg)](https://deepsource.io/gh/Laboratory-of-Embodied-Intelligence/rl-duckiebot/?ref=repository-badge)
 
 # Outline
 Work in progress repository, that contains various rl algorithms and classic control theory benchmarked in duckietown
