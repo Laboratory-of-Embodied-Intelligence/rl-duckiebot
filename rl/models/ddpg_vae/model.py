@@ -60,7 +60,11 @@ class DDPG_V2(DDPG):
                         assert action.shape == self.env.action_space.shape
 
                         # Execute next action.
-                        new_obs, reward, done, info = self.env.step(action * np.abs(self.action_space.low))
+                        #if abs(action[0])>=1 or abs(action[1])>=1:
+                        #    print("Wrong action")
+                        #    sys.exit(-1)
+                        
+                        new_obs, reward, done, info = self.env.step(action)# * np.abs(self.action_space.low))
 
                         step += 1
                         total_steps += 1
@@ -86,7 +90,7 @@ class DDPG_V2(DDPG):
                             print("Episode finished. Reward: {:.2f} {} Steps".format(episode_reward, episode_step))
 
                             # Episode done.
-                            episode_reward = 0.
+                            #episode_reward = 0.
                             episode_step = 0
                             episodes += 1
 
@@ -116,7 +120,7 @@ class DDPG_V2(DDPG):
                     combined_stats['total/duration'] = duration
                     combined_stats['total/steps_per_second'] = float(step) / float(duration)
                     combined_stats['total/episodes'] = episodes
-                    
+                    combined_stats['rewards/episode_reward'] = episode_reward 
 
                     combined_stats_sums = MPI.COMM_WORLD.allreduce(
                         np.array([as_scalar(x) for x in combined_stats.values()]))

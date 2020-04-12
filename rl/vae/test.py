@@ -39,7 +39,7 @@ for i in range(args.n_samples):
     image = image[0:][156:]
     im = cv2.resize(image,(160, 80))
     encoded = vae.encode_from_raw_image(im)
-    print( vae.decode(encoded))
+    print(im.dtype)
     reconstructed_image = vae.decode(encoded)[0]
     print(reconstructed_image.shape)
     # Plot reconstruction
