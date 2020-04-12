@@ -1,6 +1,7 @@
 import gym
-from gym import spaces
 import numpy as np
+from skimage import img_as_ubyte
+from gym import spaces
 
 
 class ResizeWrapper(gym.ObservationWrapper):
@@ -56,12 +57,11 @@ class DtRewardWrapper(gym.RewardWrapper):
 
     def reward(self, reward):
         if reward == -1000:
-            reward = -100
-         
-        #elif reward > 0: 
-        #    reward += 10
-        #else:
-        #    reward += 4
+            reward = -10
+        elif reward > 0:
+            reward += 10
+        else:
+            reward += 4
 
         return reward
 
@@ -87,8 +87,8 @@ class VaeWrapper(gym.ObservationWrapper):
                                 shape=(1, self.vae.z_size),
                                 dtype=np.float32)
     def observation(self, observation):
+        observation = img_as_ubyte(observation)
         self.last_pre_encoded_obs = observation
         enc_obs = self.vae.encode_from_raw_image(observation)
-        self.last_encoded_obs = self.vae.decode(enc_obs)[0]
-        
+        self.last_encoded_obs = self.vae.decode(enc_obs)[0][:, :, ::-1]
         return enc_obs
