@@ -1,0 +1,12 @@
+rl/runs/*
+*.pyc
+rl/reinforcement/pytorch/models/*
+rl/vae_dataset/
+rl/logs/*
+*.pkl
+rl/new_data/*
+*.jpg
+*.npz
+events.*
+rl/runs/Nov21_13-19-50_deep-learning/events.out.tfevents.1574342390.deep-learning.6734.0
+rl/runs/Nov21_14-04-42_deep-learning/events.out.tfevents.1574345082.deep-learning.8767.0
