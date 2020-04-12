@@ -1,6 +1,9 @@
 ![Docker Image CI](https://github.com/Laboratory-of-Embodied-Intelligence/rl-duckiebot/workflows/Docker%20Image%20CI/badge.svg)
 [![DeepSource](https://static.deepsource.io/deepsource-badge-light-mini.svg)](https://deepsource.io/gh/Laboratory-of-Embodied-Intelligence/rl-duckiebot/?ref=repository-badge)
 
+# Reinforcement Learning in Duckietown
+
+![](media/Duckietown._DDPG_with_VAE(Variational_Autoencoder).gif)
 # Outline
 Work in progress repository, that contains various rl algorithms and classic control theory benchmarked in duckietown
 Current algortihms will be:
