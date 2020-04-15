@@ -4,11 +4,9 @@ import time
 import os
 import numpy as np
 from mpi4py import MPI
-from PIL import Image
 from stable_baselines import logger
 from stable_baselines.ddpg.ddpg import DDPG
 from torch.utils.tensorboard import SummaryWriter
-from models.utils import make_image
 
 class DDPG_V2(DDPG):
 

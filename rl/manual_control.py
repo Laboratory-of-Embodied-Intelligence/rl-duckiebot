@@ -9,14 +9,11 @@ using the keyboard arrows.
 import sys
 import argparse
 import pyglet
-import time
 import os
 from pyglet.window import key
 import numpy as np
 import gym
-import gym_duckietown
 from gym_duckietown.envs import DuckietownEnv
-from gym_duckietown.wrappers import UndistortWrapper
 from PIL import Image
 # from experiments.utils import save_img
 
