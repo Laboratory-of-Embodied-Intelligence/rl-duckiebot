@@ -1,4 +1,5 @@
 import gym
+import math
 import numpy as np
 from skimage import img_as_ubyte
 from gym import spaces
@@ -56,24 +57,31 @@ class DtRewardWrapper(gym.RewardWrapper):
         super(DtRewardWrapper, self).__init__(env)
 
     def reward(self, reward):
+        if abs(abs(self.prev_action[0]) - abs(self.action_[0])) < 0.1 \
+           and math.copysign(1, self.action_[0]) != math.copysign(1, self.prev_action[0]):
+           reward-=12
         if reward == -1000:
             reward = -10
         elif reward > 0:
             reward += 10
         else:
             reward += 4
-
         return reward
 
 
-# this is needed because at max speed the duckie can't turn anymore
+
 class ActionWrapper(gym.ActionWrapper):
     def __init__(self, env):
         super(ActionWrapper, self).__init__(env)
+        self.prev_action = [0,0]
+        self.action_ = [0,0]
 
     def action(self, action):
-        action_ = [action[0] * 0.8, action[1]]
-        return action_
+
+        self.prev_action = self.action_
+        self.action_ = [action[0] * 0.8, action[1] * 0.8]
+        self.action_ = action
+        return self.action_
 
 
 class VaeWrapper(gym.ObservationWrapper):

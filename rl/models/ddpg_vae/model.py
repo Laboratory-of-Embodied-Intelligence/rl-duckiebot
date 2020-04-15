@@ -20,8 +20,8 @@ class DDPG_V2(DDPG):
     - more verbosity.
     """
     def learn(self, total_timesteps, callback=None,
-              log_interval=1, tb_log_name="DDPG", print_freq=100):
-        with SummaryWriter(flush_secs=15) as writer:
+              log_interval=1, tb_log_name=None, print_freq=100):
+        with SummaryWriter(tb_log_name, flush_secs=1) as writer:
             #writer.add_graph(self.graph)
             rank = MPI.COMM_WORLD.Get_rank()
             # we assume symmetric actions.
@@ -133,14 +133,6 @@ class DDPG_V2(DDPG):
                     for key in sorted(combined_stats.keys()):
                         writer.add_scalar(key, combined_stats[key], step)
                         logger.record_tabular(key, combined_stats[key])
-
-                    print(self.env.last_encoded_obs[::-1].shape)
-                    image1 = Image.fromarray(np.uint8(self.env.last_encoded_obs))
-                    image2 = Image.fromarray(np.uint8(self.env.last_pre_encoded_obs))
-                    image1.save('debug1.jpg')
-                    image2.save('debug2.jpg')
-                    writer.add_image(str(step)+'_vae', self.env.last_encoded_obs, step, dataformats='HWC') 
-                    writer.add_image(str(step)+'_true', self.env.last_pre_encoded_obs, step, dataformats='HWC') 
 
                     self.save(os.path.join(writer.log_dir+"/ddpg_vae_"  + str(episodes)), cloudpickle=True)
 

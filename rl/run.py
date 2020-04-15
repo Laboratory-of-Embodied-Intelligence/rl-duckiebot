@@ -63,7 +63,7 @@ def _enjoy():
     env = ResizeWrapper(env)
     env = NormalizeWrapper(env)
     env = ImgWrapper(env) # to make the images from 160x120x3 into 3x160x120
-    #env = ActionWrapper(env)
+    env = ActionWrapper(env)
     env = DtRewardWrapper(env)
     print("Initialized Wrappers")
     vae = load_vae(args.vae)
@@ -84,6 +84,7 @@ def _enjoy():
             #print(action)
             #action = [0.5,0]
             obs, reward, done, _ = env.step(action)
+            #print(f"Action {action}, reward {reward}")
 
             cv2.imshow('2', env.last_pre_encoded_obs)
             cv2.imshow('1', env.last_encoded_obs)

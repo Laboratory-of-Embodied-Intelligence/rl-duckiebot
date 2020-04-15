@@ -23,7 +23,7 @@ if __name__=="__main__":
     env = ResizeWrapper(env)
     env = NormalizeWrapper(env)
     env = ImgWrapper(env) # to make the images from 160x120x3 into 3x160x120
-    #env = ActionWrapper(env)
+    env = ActionWrapper(env)
     env = DtRewardWrapper(env)
     
 
@@ -32,15 +32,15 @@ if __name__=="__main__":
     parser.add_argument('-v', '--vae', help="Path for trained vae model", default='logs/vae-128-450.pkl', type=str)
     # DDPG Args
     parser.add_argument("--seed", default=0, type=int)  # Sets Gym, PyTorch and Numpy seeds
-    parser.add_argument("--max_timesteps", default=1000000, type=float)  # Max time steps to run environment for
-    parser.add_argument("--expl_noise", default=0.15, type=float)  # Std of Gaussian exploration noise
-    parser.add_argument("--batch_size", default=64, type=int)  # Batch size for both actor and critic
+    parser.add_argument("--max_timesteps", default=10000000, type=float)  # Max time steps to run environment for
+    parser.add_argument("--expl_noise", default=0.2, type=float)  # Std of Gaussian exploration noise
+    parser.add_argument("--batch_size", default=32, type=int)  # Batch size for both actor and critic
     parser.add_argument("--discount", default=0.99, type=float)  # Discount factor
     parser.add_argument("--tau", default=0.001, type=float)  # Target network update rate
     parser.add_argument("--policy_noise", default=0.1, type=float)  # Noise added to target policy during critic update
     parser.add_argument("--noise_clip", default=0.25, type=float)  # Range to clip target policy noise
-    parser.add_argument("--replay_buffer_max_size", default=50000, type=int)  # Maximum number of steps to keep in the replay buffer
-    parser.add_argument('--model-dir', type=str, default='reinforcement/pytorch/models/')
+    parser.add_argument("--replay_buffer_max_size", default=75000, type=int)  # Maximum number of steps to keep in the replay buffer
+    parser.add_argument('--tb-dir', type=str, default=None,)
     parser.add_argument('--resume', type=bool, default=False)
     parser.add_argument('--model_name', type=str, default=None)
 
@@ -48,6 +48,7 @@ if __name__=="__main__":
     n_actions = env.action_space.shape[0]
     action_noise = OrnsteinUhlenbeckActionNoise(mean=np.zeros(n_actions),
                                                                    sigma=args.expl_noise * np.ones(n_actions))
+    param_noise = AdaptiveParamNoiseSpec(initial_stddev=0.1, desired_action_stddev=0.1, adoption_coefficient=1.01)
     vae = load_vae(args.vae)
     env = VaeWrapper(env, vae)
 
@@ -57,13 +58,12 @@ if __name__=="__main__":
                     tau = args.tau,
                     action_noise = action_noise,
                     eval_env = env,
+                    param_noise = param_noise,
                     nb_train_steps=300,
-                    render_eval = True,
-                    actor_lr=0.01, 
-                    critic_lr=0.01)
+                    render_eval = True)
                     
     if (args.model_name):
         print(f"resuming {args.model_name}")
         model.load(args.model_name)
-    model.learn(args.max_timesteps)
+    model.learn(args.max_timesteps, tb_log_name=args.tb_dir)
     #model.save(os.path.join("results/ddpg_vae"), cloudpickle=True)
