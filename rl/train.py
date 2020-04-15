@@ -1,4 +1,3 @@
-import ast
 import argparse
 import logging
 import torch

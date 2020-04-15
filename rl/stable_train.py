@@ -1,15 +1,12 @@
 
 import numpy as np
 import argparse
-import os
 from utils.env import launch_env
 from utils.wrappers import NormalizeWrapper, ImgWrapper, \
     DtRewardWrapper, ActionWrapper, ResizeWrapper, VaeWrapper
 from vae.utils import load_vae
-from stable_baselines.ddpg.policies import MlpPolicy
-from stable_baselines.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise, AdaptiveParamNoiseSpec
+from stable_baselines.common.noise import OrnsteinUhlenbeckActionNoise, AdaptiveParamNoiseSpec
 from models.ddpg_vae.model import DDPG_V2
-from models.utils import CustomDDPGPolicy
 
 
 if __name__=="__main__":    

@@ -1,4 +1,3 @@
-import tensorflow as tf
 from stable_baselines.ddpg.policies import FeedForwardPolicy as DDPGPolicy
 from stable_baselines.common.policies import register_policy
 

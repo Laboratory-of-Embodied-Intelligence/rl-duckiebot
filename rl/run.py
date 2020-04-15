@@ -1,17 +1,12 @@
-import ast
 import argparse
-import logging
 
 import cv2
-import os
 import numpy as np
 
 from pyglet.window import key
-from skimage import img_as_ubyte
 from models.ddpg_vae.model import DDPG_V2
 from utils.env import launch_env
 from vae.utils import load_vae
-from vae.controller import VAEController
 
 from utils.wrappers import NormalizeWrapper, ImgWrapper, \
     DtRewardWrapper, ActionWrapper, ResizeWrapper, VaeWrapper

@@ -1,5 +1,4 @@
 import gym
-import gym_duckietown
 
 
 def launch_env(id=None):
