@@ -1,18 +1,19 @@
 
 import numpy as np
 import argparse
-from utils.env import launch_env
+import os
+from utils.env import launch_env, launch_vectorized_env
 from utils.wrappers import NormalizeWrapper, ImgWrapper, \
     DtRewardWrapper, ActionWrapper, ResizeWrapper, VaeWrapper
 from vae.utils import load_vae
-from stable_baselines.common.noise import OrnsteinUhlenbeckActionNoise, AdaptiveParamNoiseSpec
+from stable_baselines.ddpg.policies import MlpPolicy
+from stable_baselines.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise, AdaptiveParamNoiseSpec
 from models.ddpg_vae.model import DDPG_V2
 
 
 if __name__=="__main__":    
  # Initialize tensorboard
 
-    # Launch the env with our helper function
     env = launch_env()
     print("Initialized environment")
 
@@ -30,11 +31,12 @@ if __name__=="__main__":
     # DDPG Args
     parser.add_argument("--seed", default=0, type=int)  # Sets Gym, PyTorch and Numpy seeds
     parser.add_argument("--max_timesteps", default=10000000, type=float)  # Max time steps to run environment for
-    parser.add_argument("--expl_noise", default=0.2, type=float)  # Std of Gaussian exploration noise
+    parser.add_argument("--expl_noise", default=0.25, type=float)  # Std of Gaussian exploration noise
     parser.add_argument("--batch_size", default=32, type=int)  # Batch size for both actor and critic
     parser.add_argument("--discount", default=0.99, type=float)  # Discount factor
-    parser.add_argument("--tau", default=0.001, type=float)  # Target network update rate
-    parser.add_argument("--policy_noise", default=0.1, type=float)  # Noise added to target policy during critic update
+    parser.add_argument("--tau", default=0.1, type=float)  # Target network update rate
+    parser.add_argument("--policy_noise", default=0.25, type=float)  # Noise added to target policy during critic update
+    parser.add_argument("--l2-reg", default = 1e-2, type=float)
     parser.add_argument("--noise_clip", default=0.25, type=float)  # Range to clip target policy noise
     parser.add_argument("--replay_buffer_max_size", default=75000, type=int)  # Maximum number of steps to keep in the replay buffer
     parser.add_argument('--tb-dir', type=str, default=None,)
@@ -45,22 +47,24 @@ if __name__=="__main__":
     n_actions = env.action_space.shape[0]
     action_noise = OrnsteinUhlenbeckActionNoise(mean=np.zeros(n_actions),
                                                                    sigma=args.expl_noise * np.ones(n_actions))
-    param_noise = AdaptiveParamNoiseSpec(initial_stddev=0.1, desired_action_stddev=0.1, adoption_coefficient=1.01)
+    param_noise = AdaptiveParamNoiseSpec(initial_stddev=0.3,desired_action_stddev=0.5, adoption_coefficient=1.5)
     vae = load_vae(args.vae)
     env = VaeWrapper(env, vae)
 
-    model = DDPG_V2(policy = 'CustomDDPGPolicy',env = env, tensorboard_log = tensorboard_log, verbose=0,
+   
+    if (args.model_name):
+        print(f"resuming {args.model_name}")
+        model = DDPG_V2.load(args.model_name, env = env, reset_num_timesteps=False)
+        
+    else:
+        model = DDPG_V2(policy = 'CustomDDPGPolicy',env = env, tensorboard_log = tensorboard_log, verbose=0,
                     gamma = args.discount,
                     buffer_size = args.replay_buffer_max_size,
                     tau = args.tau,
                     action_noise = action_noise,
                     eval_env = env,
                     param_noise = param_noise,
-                    nb_train_steps=300,
-                    render_eval = True)
+                    critic_l2_reg = args.l2_reg)
                     
-    if (args.model_name):
-        print(f"resuming {args.model_name}")
-        model.load(args.model_name)
     model.learn(args.max_timesteps, tb_log_name=args.tb_dir)
     #model.save(os.path.join("results/ddpg_vae"), cloudpickle=True)
