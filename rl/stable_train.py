@@ -2,14 +2,15 @@
 import numpy as np
 import argparse
 import os
-from utils.env import launch_env, launch_vectorized_env
+import models.utils
+from utils.env import launch_env
 from utils.wrappers import NormalizeWrapper, ImgWrapper, \
     DtRewardWrapper, ActionWrapper, ResizeWrapper, VaeWrapper
 from vae.utils import load_vae
 from stable_baselines.ddpg.policies import MlpPolicy
 from stable_baselines.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise, AdaptiveParamNoiseSpec
 from models.ddpg_vae.model import DDPG_V2
-
+from models.sac_vae.model import SACWithVAE
 
 if __name__=="__main__":    
  # Initialize tensorboard
@@ -57,14 +58,25 @@ if __name__=="__main__":
         model = DDPG_V2.load(args.model_name, env = env, reset_num_timesteps=False)
         
     else:
-        model = DDPG_V2(policy = 'CustomDDPGPolicy',env = env, tensorboard_log = tensorboard_log, verbose=0,
-                    gamma = args.discount,
-                    buffer_size = args.replay_buffer_max_size,
-                    tau = args.tau,
-                    action_noise = action_noise,
-                    eval_env = env,
-                    param_noise = param_noise,
-                    critic_l2_reg = args.l2_reg)
-                    
+        # model = DDPG_V2(policy = 'CustomDDPGPolicy',env = env, tensorboard_log = tensorboard_log, verbose=0,
+        #             gamma = args.discount,
+        #             buffer_size = args.replay_buffer_max_size,
+        #             tau = args.tau,
+        #             action_noise = action_noise,
+        #             eval_env = env,
+        #             param_noise = param_noise,
+        #             critic_l2_reg = args.l2_reg)
+        model = SACWithVAE(policy = 'CustomSACPolicy',
+                           env = env, 
+                           tensorboard_log = tensorboard_log,
+                           learning_rate   = 3e-4,
+                           buffer_size     = 30000,
+                           batch_size      = 64,
+                           train_freq      = 3000,
+                           gamma           = 0.99,
+                           ent_coef        = 'auto_0.1',
+                           gradient_steps  = 600,
+                           learning_starts = 300)
+
     model.learn(args.max_timesteps, tb_log_name=args.tb_dir)
     #model.save(os.path.join("results/ddpg_vae"), cloudpickle=True)

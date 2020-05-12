@@ -1,6 +1,8 @@
 import gym
 import math
 import numpy as np
+import config
+import cv2
 from skimage import img_as_ubyte
 from gym import spaces
 
@@ -18,8 +20,11 @@ class ResizeWrapper(gym.ObservationWrapper):
 
     def observation(self, observation):
         from PIL import Image
-        #Image.fromarray(observation).show()\
-        new_obs = np.array(Image.fromarray(observation).resize(self.shape[0:2]))
+        margin_top = observation.shape[0] // 3
+        r = [0, margin_top, observation.shape[1], observation.shape[0]]
+        observation = observation[int(r[1]):int(r[1] + r[3]), int(r[0]):int(r[0] + r[2])]
+        new_obs = cv2.cvtColor(np.array(Image.fromarray(observation).resize(self.shape[0:2])), cv2.COLOR_BGR2RGB)
+        cv2.imwrite('1.jpg', new_obs)
         return new_obs
 
 
@@ -57,9 +62,7 @@ class DtRewardWrapper(gym.RewardWrapper):
         super(DtRewardWrapper, self).__init__(env)
 
     def reward(self, reward):
-        if abs(abs(self.prev_action[0]) - abs(self.action_[0])) < 0.1 \
-           and math.copysign(1, self.action_[0]) != math.copysign(1, self.prev_action[0]):
-           reward-=12
+
         if reward == -1000:
             reward = -10
         elif reward > 0:
