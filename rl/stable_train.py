@@ -8,9 +8,12 @@ from utils.wrappers import NormalizeWrapper, ImgWrapper, \
     DtRewardWrapper, ActionWrapper, ResizeWrapper, VaeWrapper
 from vae.utils import load_vae
 from stable_baselines.ddpg.policies import MlpPolicy
+from stable_baselines import HER
 from stable_baselines.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise, AdaptiveParamNoiseSpec
+from utils.dataset import ExpertDataset
 from models.ddpg_vae.model import DDPG_V2
 from models.sac_vae.model import SACWithVAE
+from teleop.teleop_client import TeleopEnv
 
 if __name__=="__main__":    
  # Initialize tensorboard
@@ -20,7 +23,7 @@ if __name__=="__main__":
 
     # Wrappers
     env = ResizeWrapper(env)
-    env = NormalizeWrapper(env)
+    #env = NormalizeWrapper(env)
     env = ImgWrapper(env) # to make the images from 160x120x3 into 3x160x120
     env = ActionWrapper(env)
     env = DtRewardWrapper(env)
@@ -69,14 +72,23 @@ if __name__=="__main__":
         model = SACWithVAE(policy = 'CustomSACPolicy',
                            env = env, 
                            tensorboard_log = tensorboard_log,
-                           learning_rate   = 3e-4,
-                           buffer_size     = 30000,
+                           learning_rate   = 0.0003,
+                           buffer_size     = 10000,
                            batch_size      = 64,
-                           train_freq      = 3000,
+                           train_freq      = 301,
                            gamma           = 0.99,
                            ent_coef        = 'auto_0.1',
                            gradient_steps  = 600,
                            learning_starts = 300)
-
+    #strategy = 'future'
+    # Wrap around teleoperation mode
+    #env = TeleopEnv(env, model,is_training=True)
+    dataset = ExpertDataset(expert_path='dataset.npz',
+                        traj_limitation=1, batch_size=128)
+    print("Pretraining model")
+    model.pretrain(dataset, n_epochs=10000)
+    model.save('pretrained', cloudpickle=True)
+    print("Starting training")
+    #model = HER('MlpPolicy', env, model, n_sampled_goal=4, goal_selection_strategy=strategy, verbose=1)
     model.learn(args.max_timesteps, tb_log_name=args.tb_dir)
     #model.save(os.path.join("results/ddpg_vae"), cloudpickle=True)

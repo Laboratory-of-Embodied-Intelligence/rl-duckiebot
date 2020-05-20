@@ -9,12 +9,17 @@ using the keyboard arrows.
 import sys
 import argparse
 import pyglet
+import time
 import os
+import cv2
 from pyglet.window import key
 import numpy as np
 import gym
+from vae.utils import load_vae
 from gym_duckietown.envs import DuckietownEnv
 from PIL import Image
+from utils.wrappers import NormalizeWrapper, ImgWrapper, \
+    DtRewardWrapper, ActionWrapper, ResizeWrapper, VaeWrapper
 # from experiments.utils import save_img
 
 
@@ -25,6 +30,7 @@ parser.add_argument('--distortion', default=False, action='store_true')
 parser.add_argument('--draw-curve', action='store_true', help='draw the lane following curve')
 parser.add_argument('--draw-bbox', action='store_true', help='draw collision detection bounding boxes')
 parser.add_argument('--domain-rand', action='store_true', help='enable domain randomization')
+parser.add_argument('-v', '--vae', help="Path for trained vae model", default='logs/vae-128-450.pkl', type=str)
 parser.add_argument('--frame-skip', default=1, type=int, help='number of frames to skip')
 parser.add_argument('--seed', default=1, type=int, help='seed')
 parser.add_argument('--dataset_gen_path', help='Path for storing dataset of images. If empty, dataset is not recorded')
@@ -42,6 +48,11 @@ if args.env_name and args.env_name.find('Duckietown') != -1:
     )
 else:
     env = gym.make(args.env_name)
+env = ResizeWrapper(env)
+env = NormalizeWrapper(env)
+env = ImgWrapper(env) # to make the images from 160x120x3 into 3x160x120
+env = ActionWrapper(env)
+env = DtRewardWrapper(env)
 
 env.reset()
 env.render()
@@ -63,20 +74,23 @@ def on_key_press(symbol, modifiers):
         env.close()
         sys.exit(0)
 
-    # Take a screenshot
-    # UNCOMMENT IF NEEDED - Skimage dependency
-    # elif symbol == key.RETURN:
-    #     print('saving screenshot')
-    #     img = env.render('rgb_array')
-    #     save_img('screenshot.png', img)
 
 # Register a keyboard handler
 key_handler = key.KeyStateHandler()
 env.unwrapped.window.push_handlers(key_handler)
 
 class updater:
-    def __init__(self):
+    def __init__(self, n_episodes):
         self.i = 0
+
+        self.actions = []
+        self.observations = []
+        self.rewards = []
+        self.episode_returns = np.zeros((n_episodes,))
+        self.episode_starts  = []
+        self.episode_reward = 0
+        self.episodes_played = 0
+        self.max_episodes = n_episodes
 
     def update(self, dt):
         """
@@ -102,9 +116,17 @@ class updater:
             action *= 1.5
 
         obs, reward, done, info = env.step(action)
+
+        self.episode_reward += reward
         print('step_count = %s, reward=%.3f' % (env.unwrapped.step_count, reward))
 
-    
+
+
+        self.actions.append(action)
+        self.observations.append(obs)
+        self.rewards.append(reward)
+        self.episode_starts.append(done)
+
         if args.dataset_gen_path:
             if not os.path.exists(args.dataset_gen_path):
                 os.makedirs(args.dataset_gen_path)
@@ -117,12 +139,46 @@ class updater:
 
         if done:
             print('done!')
+            print(f"Episode reward {self.episode_reward}")
+            self.episode_returns[self.episodes_played] = self.episode_reward
+            self.episodes_played += 1
+            self.episode_reward = 0
             env.reset()
             env.render()
+        
+        if self.episodes_played == self.max_episodes:
+            print("Terminating because max_episodes reached")
+            #time.sleep(4)
+            self.rewards        = np.array(self.rewards)
+            self.episode_starts = np.array(self.episode_starts[:-1])
+            #self.actions        = np.concatenate(self.actions).reshape((-1,) + env.action_space.shape)
+            #self.observations   = np.concatenate(self.observations).reshape((-1,) + env.observation_space.shape)
+            self.observations   = np.array(self.observations)
+            self.observations   = self.observations.reshape((self.observations.shape[0], self.observations.shape[-1]))
+            self.actions        = np.array(self.actions)
+            print(self.observations.shape)
+            print(self.observations[0].shape)
+            assert len(self.observations) == len(self.actions)
+
+            numpy_dict = {
+                'actions': self.actions,
+                'obs':     self.observations,
+                'rewards': self.rewards,
+                'episode_returns': self.episode_returns,
+                'episode_starts':  self.episode_starts
+            }  # type: Dict[str, np.ndarray]
+            #print(numpy_dict)
+            np.savez("dataset.npz", **numpy_dict)
+            env.close()
+            sys.exit(0)
 
         env.render()
 
-uw = updater()
+            
+
+vae = load_vae(args.vae)
+env = VaeWrapper(env, vae)
+uw = updater(10)
 pyglet.clock.schedule_interval(uw.update, 1.0 / env.unwrapped.frame_rate)
 
 

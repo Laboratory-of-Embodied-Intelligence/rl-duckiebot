@@ -95,7 +95,7 @@ for epoch in range(args.n_epochs):
         image_idx = np.random.randint(n_samples)
         image_path = args.folder + images[image_idx]
         image = cv2.imread(image_path)
-        orig_image = image
+        orig_image = iiimag
         r = ROI
         image = image[int(r[1]):int(r[1] + r[3]), int(r[0]):int(r[0] + r[2])]
         im = cv2.resize(image,(160, 80))
