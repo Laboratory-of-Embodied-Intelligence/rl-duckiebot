@@ -86,6 +86,7 @@ class SACWithVAE(SAC):
                 if step < self.learning_starts:
                     action = self.env.action_space.sample()
                     # No need to rescale when sampling random action
+                    
                     rescaled_action = action
                 else:
                     action = self.policy_tf.step(obs[None], deterministic=False).flatten()
@@ -94,6 +95,7 @@ class SACWithVAE(SAC):
 
                 assert action.shape == self.env.action_space.shape
 
+                #print(f"Not resc {action}, Resc {rescaled_action}")
                 new_obs, reward, done, info = self.env.step(rescaled_action)
                 ep_len += 1
 
@@ -164,8 +166,10 @@ class SACWithVAE(SAC):
                     logger.dumpkvs()
                     # Reset infos:
                     infos_values = []
-                if num_episodes % 100 == 0:
-                    self.save(os.path.join(self.tensorboard_log+"/sac_vae_"  + str(num_episodes)), cloudpickle=True)
+
+                if num_episodes % 1000 == 0:
+                    self.save(os.path.join(self.tensorboard_log+"/sac_vae_"  + str(num_episodes)))
+
             if is_teleop_env:
                 self.env.is_training = False
             # Use last batch

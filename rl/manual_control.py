@@ -101,13 +101,13 @@ class updater:
         action = np.array([0.0, 0.0])
 
         if key_handler[key.UP]:
-            action = np.array([0.44, 0.0])
+            action = np.array([0.5, 0.5])
         if key_handler[key.DOWN]:
-            action = np.array([-0.44, 0])
+            action = np.array([-0.5, -0.5])
         if key_handler[key.LEFT]:
-            action = np.array([0.35, +1])
+            action = np.array([0.15, +0.35])
         if key_handler[key.RIGHT]:
-            action = np.array([0.35, -1])
+            action = np.array([0.15, -0.35])
         if key_handler[key.SPACE]:
             action = np.array([0, 0])
 
@@ -178,7 +178,7 @@ class updater:
 
 vae = load_vae(args.vae)
 env = VaeWrapper(env, vae)
-uw = updater(10)
+uw = updater(50)
 pyglet.clock.schedule_interval(uw.update, 1.0 / env.unwrapped.frame_rate)
 
 

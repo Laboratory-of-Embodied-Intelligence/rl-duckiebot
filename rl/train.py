@@ -4,13 +4,13 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 import os
 import numpy as np
-
+from vae.utils import load_vae
 # Duckietown Specific
-from ddpg.model import DDPG
-from ddpg.utils import seed, evaluate_policy, ReplayBuffer
+from models.ddpg.model import DDPG
+from models.ddpg.utils import seed, evaluate_policy, ReplayBuffer
 from utils.env import launch_env
 from utils.wrappers import NormalizeWrapper, ImgWrapper, \
-    DtRewardWrapper, ActionWrapper, ResizeWrapper
+    DtRewardWrapper, ActionWrapper, ResizeWrapper, VaeWrapper
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
@@ -23,19 +23,19 @@ def _train(args):
     if not os.path.exists(args.model_dir):
         os.makedirs(args.model_dir)
     
-    # Initialize tensorboard
-    writer = SummaryWriter()
-    
+  
     # Launch the env with our helper function
     env = launch_env()
     print("Initialized environment")
 
     # Wrappers
     env = ResizeWrapper(env)
-    env = NormalizeWrapper(env)
+    #env = NormalizeWrapper(env)
     env = ImgWrapper(env) # to make the images from 160x120x3 into 3x160x120
     env = ActionWrapper(env)
     env = DtRewardWrapper(env)
+    vae = load_vae(args.vae)
+    env = VaeWrapper(env, vae)
     print("Initialized Wrappers")
     
     # Set seeds
@@ -46,7 +46,7 @@ def _train(args):
     max_action = float(env.action_space.high[0])
     print(f"State: {state_dim}, actiond_dim: {action_dim}, max_action: {max_action}")
     # Initialize policy
-    policy = DDPG(state_dim, action_dim, max_action, net_type="cnn")
+    policy = DDPG(state_dim, action_dim, max_action, net_type="dense", tb_log_name=args.tb_dir)
     if args.resume:
         policy.load(args.model_name, directory='reinforcement/pytorch/models')
         print(f"Resuming on {args.model_name}")
@@ -69,14 +69,15 @@ def _train(args):
     print("Starting training")
     while total_timesteps < args.max_timesteps:
         
-        print("timestep: {} | reward: {}".format(total_timesteps, reward))
+       # print("timestep: {} | reward: {}".format(total_timesteps, reward))
             
         if done:
             if total_timesteps != 0:
                 print(("Total T: %d Episode Num: %d Episode T: %d Reward: %f") % (
                     total_timesteps, episode_num, episode_timesteps, episode_reward))
                 policy.train(replay_buffer, episode_timesteps, args.batch_size, args.discount, args.tau)
-                writer.add_scalar('Loss/episode_reward', episode_reward, episode_num)
+                policy.log_perfomance(total_timesteps,episode_reward)
+
                 # Evaluate episode
                 if timesteps_since_eval >= args.eval_freq:
                     timesteps_since_eval %= args.eval_freq
@@ -134,21 +135,22 @@ if __name__ == '__main__':
     
     # DDPG Args
     parser.add_argument("--seed", default=0, type=int)  # Sets Gym, PyTorch and Numpy seeds
-    parser.add_argument("--start_timesteps", default=1e4, type=int)  # How many time steps purely random policy is run for
+    parser.add_argument("--start_timesteps", default=3e4, type=int)  # How many time steps purely random policy is run for
     parser.add_argument("--eval_freq", default=5e3, type=float)  # How often (time steps) we evaluate
-    parser.add_argument("--max_timesteps", default=1e6, type=float)  # Max time steps to run environment for
+    parser.add_argument("--max_timesteps", default=3e6, type=float)  # Max time steps to run environment for
     parser.add_argument("--save_models", action="store_true", default=True)  # Whether or not models are saved
-    parser.add_argument("--expl_noise", default=0.1, type=float)  # Std of Gaussian exploration noise
+    parser.add_argument("--expl_noise", default=0.75, type=float)  # Std of Gaussian exploration noise
     parser.add_argument("--batch_size", default=32, type=int)  # Batch size for both actor and critic
     parser.add_argument("--discount", default=0.99, type=float)  # Discount factor
-    parser.add_argument("--tau", default=0.005, type=float)  # Target network update rate
+    parser.add_argument("--tau", default=0.001, type=float)  # Target network update rate
     parser.add_argument("--policy_noise", default=0.2, type=float)  # Noise added to target policy during critic update
-    parser.add_argument("--noise_clip", default=0.5, type=float)  # Range to clip target policy noise
+    parser.add_argument("--noise_clip", default=0.75, type=float)  # Range to clip target policy noise
     parser.add_argument("--policy_freq", default=2, type=int)  # Frequency of delayed policy updates
-    parser.add_argument("--env_timesteps", default=500, type=int)  # Frequency of delayed policy updates
-    parser.add_argument("--replay_buffer_max_size", default=10000, type=int)  # Maximum number of steps to keep in the replay buffer
+    parser.add_argument("--env_timesteps", default=2, type=int)  # Frequency of delayed policy updates
+    parser.add_argument("--replay_buffer_max_size", default=20000, type=int)  # Maximum number of steps to keep in the replay buffer
     parser.add_argument('--model-dir', type=str, default='reinforcement/pytorch/models/')
     parser.add_argument('--resume', type=bool, default=False)
     parser.add_argument('--model_name', type=str)
-
+    parser.add_argument('-v', '--vae', help="Path for trained vae model", default='logs/vae-128-450.pkl', type=str)
+    parser.add_argument('--tb-dir', type=str, default=None,)
     _train(parser.parse_args())

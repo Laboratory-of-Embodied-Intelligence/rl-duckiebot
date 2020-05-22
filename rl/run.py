@@ -2,12 +2,15 @@ import argparse
 
 import cv2
 import numpy as np
-
+import models.utils
+from models.utils import CustomSACPolicy, CustomDDPGPolicy
 from pyglet.window import key
 from models.ddpg_vae.model import DDPG_V2
+from models.sac_vae.model  import SACWithVAE
+from models.ddpg.model import DDPG
 from utils.env import launch_env
 from vae.utils import load_vae
-
+from stable_baselines.common.evaluation import evaluate_policy
 from utils.wrappers import NormalizeWrapper, ImgWrapper, \
     DtRewardWrapper, ActionWrapper, ResizeWrapper, VaeWrapper
 
@@ -56,7 +59,7 @@ def _enjoy():
     args = parser.parse_args()
     # Wrappers
     env = ResizeWrapper(env)
-    env = NormalizeWrapper(env)
+    #env = NormalizeWrapper(env)
     env = ImgWrapper(env) # to make the images from 160x120x3 into 3x160x120
     env = ActionWrapper(env)
     env = DtRewardWrapper(env)
@@ -67,27 +70,37 @@ def _enjoy():
     action_dim = env.action_space.shape[0]
     max_action = float(env.action_space.high[0])
 
-    model = DDPG_V2.load(args.model)
+    print(f"State dim {state_dim}")
+    #model = DDPG_V2(env=env, policy='CustomDDPGPolicy')
+    #model = model.load(args.model, env=env, policy=CustomDDPGPolicy)
+    model = SACWithVAE(env=env, policy='CustomSACPolicy')
+    model = model.load(args.model, env=env, policy=CustomSACPolicy)
+    #policy = DDPG(state_dim, action_dim, max_action, net_type="dense")
+    #olicy.load(filename='ddpg_episode169042_reward10.813430518885035', directory='reinforcement/pytorch/models/')
 
+    
     obs = env.reset()
     done = False
-
+    #mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
+    #print(f"Eval reward: {mean_reward} (+/-{std_reward})")
+    ep_reward = 0
     while True:
-        while not done:
-            action = model.predict(np.array(obs))[0]
-            # Perform action
-            #print(action)
-            #action = [0.5,0]
-            obs, reward, done, _ = env.step(action)
-            #print(f"Action {action}, reward {reward}")
+        action = model.predict(obs, deterministic=True)
+        action = action[0]
 
-            cv2.imshow('2', env.last_pre_encoded_obs)
-            cv2.imshow('1', env.last_encoded_obs)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-            env.render()
-        done = False
-        obs = env.reset()        
+        obs, reward, done, _ = env.step(action)
+
+        ep_reward += reward
+        env.render(mode='top_down')
+        cv2.imshow('2', env.last_pre_encoded_obs)
+        cv2.imshow('1', env.last_encoded_obs)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+        if done:
+            print(f"Episode reward {ep_reward}")
+            obs = env.reset()
+            ep_reward = 0
+            done = False
 
 if __name__ == '__main__':
     _enjoy()

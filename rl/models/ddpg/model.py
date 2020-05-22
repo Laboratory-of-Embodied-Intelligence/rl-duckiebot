@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from torch.utils.tensorboard import SummaryWriter
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -138,10 +139,11 @@ class CriticCNN(nn.Module):
 
 
 class DDPG(object):
-    def __init__(self, state_dim, action_dim, max_action, net_type):
+    def __init__(self, state_dim, action_dim, max_action, net_type, tb_log_name=None):
         super(DDPG, self).__init__()
         print("Starting DDPG init")
         assert net_type in ["cnn", "dense"]
+        self.writer = SummaryWriter(tb_log_name, flush_secs = 1)
 
         self.state_dim = state_dim
 
@@ -172,7 +174,7 @@ class DDPG(object):
     def predict(self, state):
 
         # just making sure the state has the correct format, otherwise the prediction doesn't work
-        assert state.shape[0] == 3
+        #assert state.shape[0] == 3
 
         if self.flat:
             state = torch.FloatTensor(state.reshape(1, -1)).to(device)
@@ -181,6 +183,10 @@ class DDPG(object):
         return self.actor(state).cpu().data.numpy().flatten()
 
     def train(self, replay_buffer, iterations, batch_size=64, discount=0.99, tau=0.001):
+
+        # Mean values for episode
+        self.mean_critic_loss = 0
+        self.mean_actor_loss  = 0
 
         for it in range(iterations):
 
@@ -210,6 +216,8 @@ class DDPG(object):
             # Compute actor loss
             actor_loss = -self.critic(state, self.actor(state)).mean()
 
+            self.mean_critic_loss += critic_loss
+            self.mean_actor_loss  += actor_loss
             # Optimize the actor
             self.actor_optimizer.zero_grad()
             actor_loss.backward()
@@ -222,6 +230,7 @@ class DDPG(object):
             for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
                 target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
 
+        self.mean_critic_loss, self.mean_actor_loss = self.mean_critic_loss/iterations, self.mean_actor_loss/iterations
     def save(self, filename, directory):
         print("Saving to {}/{}_[actor|critic].pth".format(directory, filename))
         torch.save(self.actor.state_dict(), '{}/{}_actor.pth'.format(directory, filename))
@@ -232,3 +241,9 @@ class DDPG(object):
     def load(self, filename, directory):
         self.actor.load_state_dict(torch.load('{}/{}_actor.pth'.format(directory, filename), map_location=device))
         self.critic.load_state_dict(torch.load('{}/{}_critic.pth'.format(directory, filename), map_location=device))
+
+    def log_perfomance(self, it, reward):
+        # Write to tensorboard
+        self.writer.add_scalar("reward", reward, it)
+        self.writer.add_scalar("critic_loss", self.mean_critic_loss, it)
+        self.writer.add_scalar("actor_loss", self.mean_actor_loss, it)

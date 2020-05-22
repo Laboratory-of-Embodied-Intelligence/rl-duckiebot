@@ -53,8 +53,8 @@ class DDPG_V2(DDPG):
 
                         # Predict next action.
                         action, q_value = self._policy(obs, apply_noise=True, compute_q=True)
-                        if self.verbose >= 2:
-                            print(action)
+                        #if self.verbose >= 2:
+                        #    print(action)
                         assert action.shape == self.env.action_space.shape
 
                         # Execute next action.
@@ -119,7 +119,7 @@ class DDPG_V2(DDPG):
                     combined_stats['total/duration'] = duration
                     combined_stats['total/steps_per_second'] = float(step) / float(duration)
                     combined_stats['total/episodes'] = episodes
-                    combined_stats['rewards/episode_reward'] = log_reward 
+                    combined_stats['episode_reward'] = log_reward 
 
                     combined_stats_sums = MPI.COMM_WORLD.allreduce(
                         np.array([as_scalar(x) for x in combined_stats.values()]))
@@ -131,8 +131,8 @@ class DDPG_V2(DDPG):
                     for key in sorted(combined_stats.keys()):
                         writer.add_scalar(key, combined_stats[key], step)
                         logger.record_tabular(key, combined_stats[key])
-
-                    self.save(os.path.join(writer.log_dir+"/ddpg_vae_"  + str(episodes)), cloudpickle=True)
+                    if total_steps % 1000 == 0:
+                        self.save(os.path.join(writer.log_dir+"/ddpg_vae_"  + str(episodes)), cloudpickle=True)
 
                     logger.dump_tabular()
                     logger.info('')
